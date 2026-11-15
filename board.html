@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>지금 뭐하니</title>
+<link rel="stylesheet" href="family.css">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #fff8f0; font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: #3b3030; overflow: hidden; user-select: none; }
+  .app { display: grid; grid-template-columns: 1fr 30%; grid-template-rows: auto 1fr; gap: 2vmin; height: 100%; padding: 2.4vmin; }
+  header { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; }
+  .title { font-size: 4.2vmin; font-weight: 800; letter-spacing: -.02em; }
+  .title small { font-size: 2.4vmin; font-weight: 600; color: #b08a7a; margin-left: 1.4vmin; }
+  .clock { font-size: 4.6vmin; font-weight: 800; color: #6a5050; font-variant-numeric: tabular-nums; }
+  .clock span { font-size: 2.4vmin; font-weight: 600; color: #b08a7a; margin-left: 1vmin; }
+
+  .card { background: #fff; border-radius: 3vmin; box-shadow: 0 .6vmin 2.4vmin rgba(120, 80, 60, .12); overflow: hidden; }
+  .stage-card { display: grid; grid-template-rows: 1fr auto; min-height: 0; }
+  .stage { position: relative; min-height: 0; background: #eaf2ff; }
+  .stage > svg { position: absolute; inset: 0; }
+  .caption { display: flex; align-items: center; gap: 2vmin; padding: 2vmin 3vmin; }
+  .caption .emoji { font-size: 7vmin; line-height: 1; }
+  .caption .who { font-size: 2.8vmin; color: #b08a7a; font-weight: 700; }
+  .caption .what { font-size: 5.4vmin; font-weight: 800; letter-spacing: -.02em; }
+  .caption .since { margin-left: auto; font-size: 3vmin; font-weight: 700; color: #8f7a70; background: #fff3e8; padding: 1vmin 2vmin; border-radius: 99px; white-space: nowrap; }
+
+  .side { display: grid; grid-template-rows: auto 1fr auto; gap: 1.6vmin; padding: 2.4vmin; min-height: 0; }
+  .side h2 { margin: 0; font-size: 3.2vmin; font-weight: 800; }
+  .hearts { display: grid; grid-template-rows: repeat(5, 1fr); gap: 1.4vmin; min-height: 0; }
+  .hbtn { border: none; border-radius: 2.4vmin; background: #ffeef2; display: flex; align-items: center; gap: 2vmin; padding: 0 2.4vmin; font: inherit; font-size: 3.6vmin; font-weight: 800; color: #b23a5a; cursor: pointer; transition: transform .12s; position: relative; }
+  .hbtn .e { font-size: 6vmin; line-height: 1; }
+  .hbtn:active { transform: scale(.95); }
+  .hbtn.sent { background: #ffd6e0; }
+  .hbtn:nth-child(2) { background: #fff4dc; color: #a46a10; }
+  .hbtn:nth-child(3) { background: #eef0ff; color: #4a4fb0; }
+  .hbtn:nth-child(4) { background: #e8f7ec; color: #2e7d4a; }
+  .hbtn:nth-child(5) { background: #eceaf6; color: #4b3f8a; }
+  .tally { font-size: 2.6vmin; color: #8f7a70; font-weight: 700; line-height: 1.5; }
+  .tally .row { font-size: 4vmin; letter-spacing: .3vmin; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+
+  .fly { position: fixed; pointer-events: none; font-size: 6vmin; animation: fly 1.4s ease-out forwards; z-index: 20; }
+  @keyframes fly { to { transform: translateY(-30vmin) scale(1.6); opacity: 0; } }
+
+  .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 30; background: rgba(255, 240, 245, .55); }
+  .overlay.on { display: flex; }
+  .bubble { background: #fff; border-radius: 5vmin; padding: 4vmin 7vmin; text-align: center; box-shadow: 0 2vmin 6vmin rgba(200, 80, 120, .25); animation: pop .5s cubic-bezier(.2, 1.6, .4, 1); }
+  .bubble .big { font-size: 22vmin; line-height: 1.1; animation: beat 1s ease-in-out infinite; }
+  .bubble .msg { font-size: 6vmin; font-weight: 800; color: #b23a5a; margin-top: 1vmin; }
+  @keyframes pop { from { transform: scale(.3); opacity: 0; } }
+  @keyframes beat { 50% { transform: scale(1.12); } }
+  .rain { position: fixed; bottom: -12vmin; font-size: 8vmin; pointer-events: none; z-index: 29; animation: rise linear forwards; }
+  @keyframes rise { to { transform: translateY(-120vh) rotate(25deg); opacity: .2; } }
+
+  .net { position: fixed; left: 2.4vmin; bottom: 1vmin; font-size: 1.8vmin; color: #c4a99c; }
+  .demo { position: fixed; left: 3.4vmin; top: 10vmin; max-width: 62vw !important; display: none; gap: .6vmin; flex-wrap: wrap; justify-content: center; background: rgba(255, 255, 255, .92); padding: .8vmin; border-radius: 2vmin; box-shadow: 0 .4vmin 1.6vmin rgba(0, 0, 0, .12); z-index: 25; max-width: 96vw; }
+  .demo.on { display: flex; }
+  .demo button { border: none; background: #f3ece6; border-radius: 1.4vmin; padding: .8vmin 1.2vmin; font-size: 2.2vmin; cursor: pointer; }
+
+  @media (orientation: portrait) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 1.1fr auto; }
+    .hearts { grid-template-columns: repeat(5, 1fr); grid-template-rows: none; }
+    .hbtn { flex-direction: column; justify-content: center; gap: .6vmin; padding: 1.6vmin .4vmin; font-size: 2.8vmin; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title">지금 뭐하니<small id="subtitle">우리 가족 보드</small></div>
+    <div class="clock" id="clock">--:--</div>
+  </header>
+
+  <section class="card stage-card">
+    <div class="stage" id="stage"></div>
+    <div class="caption">
+      <div class="emoji" id="capEmoji">👋</div>
+      <div>
+        <div class="who" id="capWho">아빠는 지금</div>
+        <div class="what" id="capWhat">기다리는 중</div>
+      </div>
+      <div class="since" id="capSince"></div>
+    </div>
+  </section>
+
+  <aside class="card side">
+    <h2 id="sendTitle">아빠에게 마음 보내기</h2>
+    <div class="hearts" id="hearts"></div>
+    <div class="tally"><div id="tallyLabel">오늘 아빠가 보낸 마음</div><div class="row" id="tallyRow">아직 없어요</div></div>
+  </aside>
+</div>
+
+<div class="overlay" id="overlay"><div class="bubble"><div class="big" id="ovEmoji">💗</div><div class="msg" id="ovMsg">아빠가 사랑한대요</div></div></div>
+<div class="net" id="net"></div>
+<div class="demo" id="demo"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="family.js"></script>
+<script>
+(function () {
+  const F = window.Family;
+  const q = new URLSearchParams(location.search);
+  const SHOW = q.get('show') || 'dad';   // 보드에 보여줄 사람
+  const ME = q.get('me') || 'monet';     // 보드에서 하트를 보내는 사람
+  const who = F.MEMBERS[SHOW], me = F.MEMBERS[ME];
+  const api = F.makeApi();
+  let current = null;
+
+  document.getElementById('capWho').textContent = `${who.name}는 지금`;
+  document.getElementById('sendTitle').textContent = `${who.name}에게 마음 보내기`;
+  document.getElementById('tallyLabel').textContent = `오늘 ${who.name}가 보낸 마음`;
+
+  // 시계
+  const tick = () => {
+    const d = new Date();
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    document.getElementById('clock').innerHTML =
+      `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}<span>${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}요일</span>`;
+    if (current) document.getElementById('capSince').textContent = F.ago(current.created_at);
+  };
+  tick(); setInterval(tick, 15000);
+
+  // 상태 그리기
+  function showStatus(row) {
+    if (row && current && row.id === current.id) return;
+    current = row || null;
+    const a = row ? F.actionOf(row.action) : null;
+    document.getElementById('stage').innerHTML = F.sceneSVG(a ? a.key : 'idle', SHOW);
+    document.getElementById('capEmoji').textContent = a ? a.emoji : '👋';
+    document.getElementById('capWhat').textContent = a ? a.say : '안녕!';
+    document.getElementById('capSince').textContent = row ? F.ago(row.created_at) : '';
+  }
+
+  // 하트 버튼
+  const box = document.getElementById('hearts');
+  let cool = 0;
+  F.HEARTS.forEach((h) => {
+    const b = document.createElement('button');
+    b.className = 'hbtn';
+    b.innerHTML = `<span class="e">${h.emoji}</span><span>${h.label}</span>`;
+    b.addEventListener('click', async (ev) => {
+      flyFrom(b, h.emoji);
+      if (Date.now() < cool) return;
+      cool = Date.now() + 1500;
+      b.classList.add('sent'); setTimeout(() => b.classList.remove('sent'), 800);
+      try { await api.sendHeart(ME, SHOW, h.key); } catch (e) { setNet('보내기 실패 — 인터넷을 확인해 주세요'); }
+    });
+    box.appendChild(b);
+  });
+
+  function flyFrom(el, emoji) {
+    const r = el.getBoundingClientRect();
+    for (let i = 0; i < 3; i++) {
+      const s = document.createElement('div');
+      s.className = 'fly'; s.textContent = emoji;
+      s.style.left = (r.left + r.width * (0.3 + Math.random() * 0.4)) + 'px';
+      s.style.top = (r.top + r.height * 0.2) + 'px';
+      s.style.animationDelay = (i * 0.12) + 's';
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 1800);
+    }
+  }
+
+  // 받은 마음
+  const MSG = { love: '사랑한대요', hug: '꼭 안아준대요', miss: '보고 싶대요', cheer: '화이팅이래요', night: '잘 자래요' };
+  let ovTimer = null;
+  function receiveHeart(row) {
+    if (row.to_member !== ME || row.from_member !== SHOW) return;
+    const h = F.heartOf(row.kind);
+    document.getElementById('ovEmoji').textContent = h.emoji;
+    document.getElementById('ovMsg').textContent = `${who.name}가 ${MSG[h.key] || '마음을 보냈어요'}`;
+    const ov = document.getElementById('overlay');
+    ov.classList.remove('on'); void ov.offsetWidth; ov.classList.add('on');
+    for (let i = 0; i < 18; i++) {
+      const s = document.createElement('div');
+      s.className = 'rain'; s.textContent = i % 3 ? '💗' : h.emoji;
+      s.style.left = Math.random() * 96 + 'vw';
+      s.style.animationDuration = (3 + Math.random() * 3) + 's';
+      s.style.animationDelay = Math.random() * 1.5 + 's';
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 8000);
+    }
+    clearTimeout(ovTimer);
+    ovTimer = setTimeout(() => ov.classList.remove('on'), 7000);
+    loadTally();
+  }
+  document.getElementById('overlay').addEventListener('click', () => document.getElementById('overlay').classList.remove('on'));
+
+  async function loadTally() {
+    try {
+      const list = (await api.heartsToday(ME)).filter((h) => h.from_member === SHOW);
+      document.getElementById('tallyRow').textContent = list.length ? list.slice(0, 14).map((h) => F.heartOf(h.kind).emoji).join('') + (list.length > 14 ? ` +${list.length - 14}` : '') : '아직 없어요';
+    } catch (e) { /* 무시 */ }
+  }
+
+  function setNet(t) { document.getElementById('net').textContent = t; }
+
+  async function refresh() {
+    try { const s = await api.latestStatus(SHOW); if (s) showStatus(s); } catch (e) { setNet('연결 재시도 중…'); }
+  }
+
+  // 시작
+  showStatus(null);
+  refresh(); loadTally();
+  api.subscribe(
+    (row) => { if (row.member === SHOW) showStatus(row); },
+    (row) => receiveHeart(row),
+    (st) => setNet(st === 'SUBSCRIBED' ? '● 연결됨' : st === 'DEMO' ? '데모 모드 (서버 연결 전)' : '연결 확인 중…')
+  );
+  setInterval(refresh, 60000);                                        // 1분마다 확인 (실시간 끊김 대비)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); loadTally(); } });
+  setTimeout(() => location.reload(), 6 * 60 * 60 * 1000);           // 6시간마다 새로고침
+  F.keepAwake();
+
+  // 데모 모드: 아래쪽에 미리보기 버튼
+  if (api.mode === 'demo' || q.has('demo')) {
+    const d = document.getElementById('demo');
+    d.classList.add('on');
+    F.ACTIONS.forEach((a) => {
+      const b = document.createElement('button');
+      b.textContent = a.emoji + ' ' + a.label;
+      b.onclick = () => showStatus({ id: 'd' + Math.random(), member: SHOW, action: a.key, created_at: new Date().toISOString() });
+      d.appendChild(b);
+    });
+    const hb = document.createElement('button');
+    hb.textContent = '💗 하트 받기';
+    hb.onclick = () => receiveHeart({ from_member: SHOW, to_member: ME, kind: F.HEARTS[Math.floor(Math.random() * F.HEARTS.length)].key });
+    d.appendChild(hb);
+  }
+})();
+</script>
+</body>
+</html>
