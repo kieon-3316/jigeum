@@ -8,15 +8,23 @@
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; background: #fff8f0; font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: #3b3030; overflow: hidden; user-select: none; }
-  .app { display: grid; grid-template-columns: 1fr 30%; grid-template-rows: auto 1fr; gap: 2vmin; height: 100%; padding: 2.4vmin; }
-  header { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; }
-  .title { font-size: 4.2vmin; font-weight: 800; letter-spacing: -.02em; }
-  .title small { font-size: 2.4vmin; font-weight: 600; color: #b08a7a; margin-left: 1.4vmin; }
-  .clock { font-size: 4.6vmin; font-weight: 800; color: #6a5050; font-variant-numeric: tabular-nums; }
-  .clock span { font-size: 2.4vmin; font-weight: 600; color: #b08a7a; margin-left: 1vmin; }
+  button { font-family: inherit; }
+  .app { display: grid; grid-template-columns: 1fr 28%; grid-template-rows: auto 1fr; gap: 2vmin; height: 100%; padding: 2.4vmin; }
+  header { grid-column: 1 / -1; display: flex; align-items: center; gap: 2vmin; }
+  .title { font-size: 4vmin; font-weight: 800; letter-spacing: -.02em; white-space: nowrap; }
+  .tabs { display: flex; gap: 1vmin; margin-left: 2vmin; }
+  .tab { border: none; background: #f3e9e1; color: #8f7a70; font-size: 2.8vmin; font-weight: 800; padding: 1.2vmin 2.6vmin; border-radius: 99px; cursor: pointer; }
+  .tab.on { background: #ff8fab; color: #fff; }
+  .clock { margin-left: auto; font-size: 4.4vmin; font-weight: 800; color: #6a5050; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .clock span { font-size: 2.3vmin; font-weight: 600; color: #b08a7a; margin-left: 1vmin; }
 
   .card { background: #fff; border-radius: 3vmin; box-shadow: 0 .6vmin 2.4vmin rgba(120, 80, 60, .12); overflow: hidden; }
-  .stage-card { display: grid; grid-template-rows: 1fr auto; min-height: 0; }
+  .main { position: relative; min-height: 0; }
+  .view { position: absolute; inset: 0; display: none; }
+  .view.on { display: grid; }
+
+  /* 아빠 */
+  #vDad { grid-template-rows: 1fr auto; }
   .stage { position: relative; min-height: 0; background: #eaf2ff; }
   .stage > svg { position: absolute; inset: 0; }
   .caption { display: flex; align-items: center; gap: 2vmin; padding: 2vmin 3vmin; }
@@ -25,23 +33,75 @@
   .caption .what { font-size: 5.4vmin; font-weight: 800; letter-spacing: -.02em; }
   .caption .since { margin-left: auto; font-size: 3vmin; font-weight: 700; color: #8f7a70; background: #fff3e8; padding: 1vmin 2vmin; border-radius: 99px; white-space: nowrap; }
 
+  /* 할 일 */
+  #vTodo { grid-template-rows: auto auto 1fr; gap: 1.8vmin; padding: 2.6vmin 3vmin 3vmin; background: #fffdf7; }
+  .todo-head { display: flex; align-items: center; gap: 1.4vmin; }
+  .slot { border: none; font-size: 3.2vmin; font-weight: 800; padding: 1.2vmin 2.8vmin; border-radius: 99px; background: #f3ece6; color: #8f7a70; cursor: pointer; }
+  .slot.on { background: #ffd166; color: #6b4a00; }
+  .slot[data-slot=evening].on { background: #7986cb; color: #fff; }
+  .stars { margin-left: auto; font-size: 4vmin; font-weight: 800; color: #c98a00; }
+  .bar { height: 2vmin; border-radius: 99px; background: #f3ece6; overflow: hidden; }
+  .bar div { height: 100%; width: 0; background: linear-gradient(90deg, #ffd166, #ff8fab); border-radius: 99px; transition: width .6s; }
+  .todo-grid { display: grid; gap: 1.8vmin; min-height: 0; }
+  .todo { position: relative; border: none; border-radius: 3vmin; background: #fff; box-shadow: 0 .5vmin 1.6vmin rgba(120, 80, 60, .12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8vmin; padding: 1.4vmin; cursor: pointer; transition: transform .12s, background .3s; overflow: hidden; }
+  .todo:active { transform: scale(.95); }
+  .todo .e { font-size: 9vmin; line-height: 1; }
+  .todo .t { font-size: 3.4vmin; font-weight: 800; color: #4a3a3a; text-align: center; word-break: keep-all; line-height: 1.2; }
+  .todo-grid.dense .todo .t { font-size: 2.8vmin; }
+  .todo-grid.dense .todo .e { font-size: 7.5vmin; }
+  .todo-grid.dense .stamp { width: 8.5vmin; height: 8.5vmin; font-size: 1.7vmin; }
+  .todo .s { font-size: 2vmin; color: #9a857a; font-weight: 700; text-align: center; }
+  .todo.done { background: #eef9f0; }
+  .todo.done .e, .todo.done .t, .todo.done .s { opacity: .45; }
+  .stamp { position: absolute; top: 1vmin; right: 1vmin; width: 10vmin; height: 10vmin; border: .7vmin solid #e53950; border-radius: 50%; color: #e53950; font-size: 2vmin; font-weight: 900; display: none; align-items: center; justify-content: center; text-align: center; line-height: 1.15; transform: rotate(-14deg); background: rgba(255, 255, 255, .55); }
+  .todo.done .stamp { display: flex; }
+  .todo.just .stamp { animation: stamp .45s cubic-bezier(.2, 1.8, .4, 1); }
+  @keyframes stamp { from { transform: rotate(-14deg) scale(2.6); opacity: 0; } }
+
+  /* 일정 */
+  #vSched { grid-template-columns: 1fr 34%; gap: 2.4vmin; padding: 2.6vmin 3vmin; background: #f7f9ff; }
+  .sch-left { display: grid; grid-template-rows: auto 1fr; gap: 1.6vmin; min-height: 0; }
+  .sch-date { font-size: 4vmin; font-weight: 800; }
+  .sch-date small { font-size: 2.5vmin; color: #6b7bb0; margin-left: 1.4vmin; font-weight: 800; }
+  .lessons { display: grid; grid-auto-flow: column; grid-template-rows: repeat(6, 1fr); grid-template-columns: 1fr 1fr; gap: 1.1vmin 1.6vmin; min-height: 0; }
+  .les { display: flex; align-items: center; gap: 1.4vmin; background: #fff; border-radius: 1.8vmin; padding: .8vmin 1.6vmin; box-shadow: 0 .3vmin 1vmin rgba(60, 80, 140, .08); min-height: 0; overflow: hidden; }
+  .les .n { flex: none; width: 4.4vmin; height: 4.4vmin; border-radius: 50%; background: #e3e8fb; color: #4a5aa0; font-weight: 900; font-size: 2.2vmin; display: flex; align-items: center; justify-content: center; }
+  .les .e { font-size: 4vmin; flex: none; }
+  .les .sub { font-size: 2.3vmin; font-weight: 800; color: #2f3a66; line-height: 1.2; }
+  .les .top { font-size: 1.9vmin; color: #7d88b3; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .les .tm { font-size: 1.8vmin; color: #9aa3c7; font-weight: 700; }
+  .les.break { background: #eef1fb; box-shadow: none; }
+  .les.break .n { background: none; }
+  .les.event { background: #fff4d6; }
+  .les.event .n { background: #ffd166; color: #6b4a00; font-size: 1.6vmin; width: auto; padding: 0 1vmin; border-radius: 99px; }
+  .les.now { outline: .5vmin solid #ff8fab; }
+  .sch-right { display: grid; grid-auto-rows: min-content; gap: 1.8vmin; align-content: start; }
+  .box { background: #fff; border-radius: 2.4vmin; padding: 2vmin 2.4vmin; box-shadow: 0 .3vmin 1vmin rgba(60, 80, 140, .08); }
+  .box h3 { margin: 0 0 1vmin; font-size: 2.4vmin; color: #6b7bb0; }
+  .box .big { font-size: 4vmin; font-weight: 800; display: flex; align-items: center; gap: 1.4vmin; }
+  .box .big .e { font-size: 6vmin; }
+  .box .wdf { font-size: 2.2vmin; color: #4a5070; line-height: 1.45; font-weight: 600; }
+  .box .muted { font-size: 2.6vmin; color: #8a90a8; font-weight: 700; }
+  .rest { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 5vmin; font-weight: 800; color: #6b7bb0; }
+  .rest .e { font-size: 16vmin; }
+
+  /* 오른쪽 하트 */
   .side { display: grid; grid-template-rows: auto 1fr auto; gap: 1.6vmin; padding: 2.4vmin; min-height: 0; }
-  .side h2 { margin: 0; font-size: 3.2vmin; font-weight: 800; }
+  .side h2 { margin: 0; font-size: 3vmin; font-weight: 800; }
   .hearts { display: grid; grid-template-rows: repeat(5, 1fr); gap: 1.4vmin; min-height: 0; }
-  .hbtn { border: none; border-radius: 2.4vmin; background: #ffeef2; display: flex; align-items: center; gap: 2vmin; padding: 0 2.4vmin; font: inherit; font-size: 3.6vmin; font-weight: 800; color: #b23a5a; cursor: pointer; transition: transform .12s; position: relative; }
-  .hbtn .e { font-size: 6vmin; line-height: 1; }
+  .hbtn { border: none; border-radius: 2.4vmin; background: #ffeef2; display: flex; align-items: center; gap: 2vmin; padding: 0 2.2vmin; font-size: 3.4vmin; font-weight: 800; color: #b23a5a; cursor: pointer; transition: transform .12s; }
+  .hbtn .e { font-size: 5.6vmin; line-height: 1; }
   .hbtn:active { transform: scale(.95); }
   .hbtn.sent { background: #ffd6e0; }
   .hbtn:nth-child(2) { background: #fff4dc; color: #a46a10; }
   .hbtn:nth-child(3) { background: #eef0ff; color: #4a4fb0; }
   .hbtn:nth-child(4) { background: #e8f7ec; color: #2e7d4a; }
   .hbtn:nth-child(5) { background: #eceaf6; color: #4b3f8a; }
-  .tally { font-size: 2.6vmin; color: #8f7a70; font-weight: 700; line-height: 1.5; }
-  .tally .row { font-size: 4vmin; letter-spacing: .3vmin; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+  .tally { font-size: 2.4vmin; color: #8f7a70; font-weight: 700; line-height: 1.5; }
+  .tally .row { font-size: 3.8vmin; letter-spacing: .3vmin; white-space: nowrap; overflow: hidden; }
 
   .fly { position: fixed; pointer-events: none; font-size: 6vmin; animation: fly 1.4s ease-out forwards; z-index: 20; }
   @keyframes fly { to { transform: translateY(-30vmin) scale(1.6); opacity: 0; } }
-
   .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 30; background: rgba(255, 240, 245, .55); }
   .overlay.on { display: flex; }
   .bubble { background: #fff; border-radius: 5vmin; padding: 4vmin 7vmin; text-align: center; box-shadow: 0 2vmin 6vmin rgba(200, 80, 120, .25); animation: pop .5s cubic-bezier(.2, 1.6, .4, 1); }
@@ -52,34 +112,58 @@
   .rain { position: fixed; bottom: -12vmin; font-size: 8vmin; pointer-events: none; z-index: 29; animation: rise linear forwards; }
   @keyframes rise { to { transform: translateY(-120vh) rotate(25deg); opacity: .2; } }
 
-  .net { position: fixed; left: 2.4vmin; bottom: 1vmin; font-size: 1.8vmin; color: #c4a99c; }
-  .demo { position: fixed; left: 3.4vmin; top: 10vmin; max-width: 62vw !important; display: none; gap: .6vmin; flex-wrap: wrap; justify-content: center; background: rgba(255, 255, 255, .92); padding: .8vmin; border-radius: 2vmin; box-shadow: 0 .4vmin 1.6vmin rgba(0, 0, 0, .12); z-index: 25; max-width: 96vw; }
+  .net { position: fixed; left: 2.4vmin; bottom: .6vmin; font-size: 1.7vmin; color: #c4a99c; }
+  .demo { position: fixed; left: 3.4vmin; top: 10vmin; max-width: 62vw; display: none; gap: .6vmin; flex-wrap: wrap; background: rgba(255, 255, 255, .92); padding: .8vmin; border-radius: 2vmin; box-shadow: 0 .4vmin 1.6vmin rgba(0, 0, 0, .12); z-index: 25; }
   .demo.on { display: flex; }
-  .demo button { border: none; background: #f3ece6; border-radius: 1.4vmin; padding: .8vmin 1.2vmin; font-size: 2.2vmin; cursor: pointer; }
+  .demo button { border: none; background: #f3ece6; border-radius: 1.4vmin; padding: .8vmin 1.2vmin; font-size: 2.1vmin; cursor: pointer; }
 
   @media (orientation: portrait) {
-    .app { grid-template-columns: 1fr; grid-template-rows: auto 1.1fr auto; }
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 1.4fr auto; }
+    header { flex-wrap: wrap; }
     .hearts { grid-template-columns: repeat(5, 1fr); grid-template-rows: none; }
     .hbtn { flex-direction: column; justify-content: center; gap: .6vmin; padding: 1.6vmin .4vmin; font-size: 2.8vmin; }
+    #vSched { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div class="title">지금 뭐하니<small id="subtitle">우리 가족 보드</small></div>
+    <div class="title">지금 뭐하니</div>
+    <div class="tabs">
+      <button class="tab" data-v="vDad" id="tabDad">🧑 아빠</button>
+      <button class="tab" data-v="vTodo">✅ 할 일</button>
+      <button class="tab" data-v="vSched">📅 오늘 일정</button>
+    </div>
     <div class="clock" id="clock">--:--</div>
   </header>
 
-  <section class="card stage-card">
-    <div class="stage" id="stage"></div>
-    <div class="caption">
-      <div class="emoji" id="capEmoji">👋</div>
-      <div>
-        <div class="who" id="capWho">아빠는 지금</div>
-        <div class="what" id="capWhat">기다리는 중</div>
+  <section class="card main">
+    <div class="view" id="vDad">
+      <div class="stage" id="stage"></div>
+      <div class="caption">
+        <div class="emoji" id="capEmoji">👋</div>
+        <div><div class="who" id="capWho">아빠는 지금</div><div class="what" id="capWhat">안녕!</div></div>
+        <div class="since" id="capSince"></div>
       </div>
-      <div class="since" id="capSince"></div>
+    </div>
+
+    <div class="view" id="vTodo">
+      <div class="todo-head">
+        <button class="slot" data-slot="morning">☀️ 아침</button>
+        <button class="slot" data-slot="evening">🌙 저녁</button>
+        <div class="stars" id="stars">⭐ 0 / 0</div>
+      </div>
+      <div class="bar"><div id="bar"></div></div>
+      <div class="todo-grid" id="todoGrid"></div>
+    </div>
+
+    <div class="view" id="vSched">
+      <div class="sch-left">
+        <div class="sch-date" id="schDate"></div>
+        <div class="lessons" id="lessons"></div>
+      </div>
+      <div class="sch-right" id="schRight"></div>
     </div>
   </section>
 
@@ -90,7 +174,7 @@
   </aside>
 </div>
 
-<div class="overlay" id="overlay"><div class="bubble"><div class="big" id="ovEmoji">💗</div><div class="msg" id="ovMsg">아빠가 사랑한대요</div></div></div>
+<div class="overlay" id="overlay"><div class="bubble"><div class="big" id="ovEmoji">💗</div><div class="msg" id="ovMsg"></div></div></div>
 <div class="net" id="net"></div>
 <div class="demo" id="demo"></div>
 
@@ -98,57 +182,168 @@
 <script src="config.js"></script>
 <script src="family.js"></script>
 <script>
-(function () {
+(async function () {
   const F = window.Family;
   const q = new URLSearchParams(location.search);
   const SHOW = q.get('show') || 'dad';   // 보드에 보여줄 사람
-  const ME = q.get('me') || 'monet';     // 보드에서 하트를 보내는 사람
+  const ME = q.get('me') || 'monet';     // 보드에서 쓰는 사람
   const who = F.MEMBERS[SHOW], me = F.MEMBERS[ME];
   const api = F.makeApi();
-  let current = null;
+  const $ = (id) => document.getElementById(id);
 
-  document.getElementById('capWho').textContent = `${who.name}는 지금`;
-  document.getElementById('sendTitle').textContent = `${who.name}에게 마음 보내기`;
-  document.getElementById('tallyLabel').textContent = `오늘 ${who.name}가 보낸 마음`;
+  await F.requireLogin(api);
 
-  // 시계
+  $('capWho').textContent = `${who.name}는 지금`;
+  $('tabDad').textContent = `🧑 ${who.name}`;
+  $('sendTitle').textContent = `${who.name}에게 마음 보내기`;
+  $('tallyLabel').textContent = `오늘 ${who.name}가 보낸 마음`;
+
+  // ───── 탭 ─────
+  let view = 'vDad', lastTouch = Date.now();
+  function show(v) {
+    view = v;
+    document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === v));
+    document.querySelectorAll('.tab').forEach((el) => el.classList.toggle('on', el.dataset.v === v));
+    $('demo').style.visibility = v === 'vDad' ? 'visible' : 'hidden';
+    if (v === 'vTodo') renderTodo();
+    if (v === 'vSched') renderSched();
+  }
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => show(t.dataset.v)));
+  document.addEventListener('pointerdown', () => { lastTouch = Date.now(); }, true);
+  // 시간대별 기본 화면: 아침(6~9시)·저녁(17~21시)은 할 일, 그 외엔 아빠
+  function homeView() {
+    const h = new Date().getHours();
+    return (h >= 6 && h < 9) || (h >= 17 && h < 21) ? 'vTodo' : 'vDad';
+  }
+  setInterval(() => { if (Date.now() - lastTouch > 3 * 60 * 1000 && view !== homeView()) show(homeView()); }, 30000);
+
+  // ───── 시계 ─────
+  let today = F.dayStr();
   const tick = () => {
     const d = new Date();
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
-    document.getElementById('clock').innerHTML =
-      `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}<span>${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}요일</span>`;
-    if (current) document.getElementById('capSince').textContent = F.ago(current.created_at);
+    $('clock').innerHTML = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}<span>${F.dayLabel()}</span>`;
+    if (current) $('capSince').textContent = F.ago(current.created_at);
+    if (F.dayStr() !== today) { today = F.dayStr(); loadTodo(); loadSched(); }   // 자정 넘으면 새 하루
   };
-  tick(); setInterval(tick, 15000);
 
-  // 상태 그리기
+  // ───── 아빠 상태 ─────
+  let current = null;
   function showStatus(row) {
     if (row && current && row.id === current.id) return;
     current = row || null;
     const a = row ? F.actionOf(row.action) : null;
-    document.getElementById('stage').innerHTML = F.sceneSVG(a ? a.key : 'idle', SHOW);
-    document.getElementById('capEmoji').textContent = a ? a.emoji : '👋';
-    document.getElementById('capWhat').textContent = a ? a.say : '안녕!';
-    document.getElementById('capSince').textContent = row ? F.ago(row.created_at) : '';
+    $('stage').innerHTML = F.sceneSVG(a ? a.key : 'idle', SHOW);
+    $('capEmoji').textContent = a ? a.emoji : '👋';
+    $('capWhat').textContent = a ? a.say : '안녕!';
+    $('capSince').textContent = row ? F.ago(row.created_at) : '';
+  }
+  async function refresh() {
+    try { const s = await api.latestStatus(SHOW); if (s) showStatus(s); } catch (e) { setNet('연결 재시도 중…'); }
   }
 
-  // 하트 버튼
-  const box = document.getElementById('hearts');
+  // ───── 할 일 ─────
+  let items = [], done = new Set(), slot = F.defaultSlot();
+  async function loadTodo() {
+    try {
+      items = await api.todoItems();
+      done = new Set((await api.todoDone(F.dayStr())).map((d) => d.item_id));
+    } catch (e) { setNet('할 일 불러오기 실패'); }
+    renderTodo();
+  }
+  document.querySelectorAll('.slot').forEach((b) => b.addEventListener('click', () => { slot = b.dataset.slot; renderTodo(); }));
+  function renderTodo(justId) {
+    document.querySelectorAll('.slot').forEach((b) => b.classList.toggle('on', b.dataset.slot === slot));
+    const list = F.todayItems(items, slot);
+    const n = list.filter((i) => done.has(i.id)).length;
+    $('stars').textContent = `⭐ ${n} / ${list.length}`;
+    $('bar').style.width = list.length ? (n / list.length) * 100 + '%' : '0';
+    const g = $('todoGrid');
+    const cols = Math.ceil(list.length / 2) || 1;
+    g.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    g.classList.toggle('dense', cols >= 5);
+    g.innerHTML = '';
+    list.forEach((it) => {
+      const b = document.createElement('button');
+      b.className = 'todo' + (done.has(it.id) ? ' done' : '') + (it.id === justId ? ' just' : '');
+      b.innerHTML = `<div class="e">${it.emoji}</div><div class="t">${it.title}</div>${it.sub ? `<div class="s">${it.sub}</div>` : ''}<div class="stamp">참<br>잘했어요</div>`;
+      // 안 한 일: 한 번 누르면 완료 / 한 일: 1초 꾹 누르면 취소
+      let hold = null;
+      b.addEventListener('pointerdown', () => {
+        if (!done.has(it.id)) return;
+        hold = setTimeout(() => toggle(it, false), 1000);
+      });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach((e) => b.addEventListener(e, () => clearTimeout(hold)));
+      b.addEventListener('click', () => { if (!done.has(it.id)) toggle(it, true, b); });
+      g.appendChild(b);
+    });
+  }
+  async function toggle(it, on, el) {
+    if (on) { done.add(it.id); if (el) flyFrom(el, '⭐'); } else done.delete(it.id);
+    renderTodo(on ? it.id : null);
+    if (on) checkAllDone();
+    try { await api.setDone(it.id, F.dayStr(), on, ME); } catch (e) { setNet('저장 실패 — 인터넷 확인'); }
+  }
+  function checkAllDone() {
+    const list = F.todayItems(items, slot);
+    if (list.length && list.every((i) => done.has(i.id))) {
+      celebrate('🎉', `${slot === 'morning' ? '아침' : '저녁'} 할 일 다 했어요!`, '⭐');
+    }
+  }
+
+  // ───── 일정 ─────
+  let lessons = [], info = null, extras = [];
+  async function loadSched() {
+    try {
+      [lessons, info, extras] = await Promise.all([api.lessons(F.dayStr()), api.dayInfo(F.dayStr()), api.extras()]);
+    } catch (e) { setNet('일정 불러오기 실패'); }
+    renderSched();
+  }
+  function renderSched() {
+    $('schDate').innerHTML = `${F.dayLabel()}${info && info.leader ? `<small>오늘의 반장 · ${info.leader}</small>` : ''}`;
+    const L = $('lessons'), R = $('schRight');
+    const todayEx = extras.filter((x) => x.dow === F.dowOf());
+    const tomEx = extras.filter((x) => x.dow === F.dowOf(1));
+    const now = new Date(); const nowT = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    if (!lessons.length) {
+      L.innerHTML = `<div class="rest"><div class="e">🎈</div>오늘은 학원 쉬는 날!</div>`;
+      L.style.gridTemplateRows = '1fr';
+    } else {
+      L.style.gridTemplateRows = `repeat(${Math.ceil(lessons.length / 2)}, 1fr)`;
+      L.innerHTML = lessons.map((l) => {
+        const isNow = l.starts && l.ends && nowT >= F.hhmm(l.starts) && nowT < F.hhmm(l.ends);
+        const num = l.kind === 'break' ? '' : (l.label || Number(l.seq));
+        return `<div class="les ${l.kind}${isNow ? ' now' : ''}">
+          <div class="n">${num}</div><div class="e">${F.subjectEmoji(l.subject)}</div>
+          <div style="min-width:0"><div class="sub">${l.subject}</div>${l.topic ? `<div class="top">${l.topic}</div>` : ''}
+          ${l.starts ? `<div class="tm">${F.hhmm(l.starts)}${l.ends ? '~' + F.hhmm(l.ends) : ''}</div>` : ''}</div></div>`;
+      }).join('');
+    }
+    const exHtml = (arr) => arr.length
+      ? arr.map((x) => `<div class="big"><span class="e">${x.emoji}</span>${x.title}${x.starts ? ` <span class="muted">${F.hhmm(x.starts)}</span>` : ''}</div>`).join('')
+      : `<div class="muted">없어요 · 집으로! 🏠</div>`;
+    const tomRest = F.isWeekend(1);
+    R.innerHTML = `
+      <div class="box"><h3>학원 끝나고</h3>${lessons.length ? exHtml(todayEx) : exHtml(todayEx.length ? todayEx : [])}</div>
+      <div class="box"><h3>내일은</h3>${tomRest ? '<div class="muted">🎈 쉬는 날</div>' : ''}${tomEx.length ? exHtml(tomEx) : (tomRest ? '' : '<div class="muted">학원만 가요</div>')}</div>
+      ${info && info.wdf ? `<div class="box"><h3>오늘의 문장</h3><div class="wdf">${info.wdf}</div></div>` : ''}`;
+  }
+
+  // ───── 하트 ─────
+  const box = $('hearts');
   let cool = 0;
   F.HEARTS.forEach((h) => {
     const b = document.createElement('button');
     b.className = 'hbtn';
     b.innerHTML = `<span class="e">${h.emoji}</span><span>${h.label}</span>`;
-    b.addEventListener('click', async (ev) => {
+    b.addEventListener('click', async () => {
       flyFrom(b, h.emoji);
       if (Date.now() < cool) return;
       cool = Date.now() + 1500;
       b.classList.add('sent'); setTimeout(() => b.classList.remove('sent'), 800);
-      try { await api.sendHeart(ME, SHOW, h.key); } catch (e) { setNet('보내기 실패 — 인터넷을 확인해 주세요'); }
+      try { await api.sendHeart(ME, SHOW, h.key); } catch (e) { setNet('보내기 실패 — 인터넷 확인'); }
     });
     box.appendChild(b);
   });
-
   function flyFrom(el, emoji) {
     const r = el.getBoundingClientRect();
     for (let i = 0; i < 3; i++) {
@@ -161,20 +356,15 @@
       setTimeout(() => s.remove(), 1800);
     }
   }
-
-  // 받은 마음
   const MSG = { love: '사랑한대요', hug: '꼭 안아준대요', miss: '보고 싶대요', cheer: '화이팅이래요', night: '잘 자래요' };
   let ovTimer = null;
-  function receiveHeart(row) {
-    if (row.to_member !== ME || row.from_member !== SHOW) return;
-    const h = F.heartOf(row.kind);
-    document.getElementById('ovEmoji').textContent = h.emoji;
-    document.getElementById('ovMsg').textContent = `${who.name}가 ${MSG[h.key] || '마음을 보냈어요'}`;
-    const ov = document.getElementById('overlay');
+  function celebrate(big, msg, rainEmoji) {
+    $('ovEmoji').textContent = big; $('ovMsg').textContent = msg;
+    const ov = $('overlay');
     ov.classList.remove('on'); void ov.offsetWidth; ov.classList.add('on');
     for (let i = 0; i < 18; i++) {
       const s = document.createElement('div');
-      s.className = 'rain'; s.textContent = i % 3 ? '💗' : h.emoji;
+      s.className = 'rain'; s.textContent = i % 3 ? rainEmoji : big;
       s.style.left = Math.random() * 96 + 'vw';
       s.style.animationDuration = (3 + Math.random() * 3) + 's';
       s.style.animationDelay = Math.random() * 1.5 + 's';
@@ -183,44 +373,46 @@
     }
     clearTimeout(ovTimer);
     ovTimer = setTimeout(() => ov.classList.remove('on'), 7000);
+  }
+  $('overlay').addEventListener('click', () => $('overlay').classList.remove('on'));
+  function receiveHeart(row) {
+    if (row.to_member !== ME || row.from_member !== SHOW) return;
+    const h = F.heartOf(row.kind);
+    celebrate(h.emoji, `${who.name}가 ${MSG[h.key] || '마음을 보냈어요'}`, '💗');
     loadTally();
   }
-  document.getElementById('overlay').addEventListener('click', () => document.getElementById('overlay').classList.remove('on'));
-
   async function loadTally() {
     try {
       const list = (await api.heartsToday(ME)).filter((h) => h.from_member === SHOW);
-      document.getElementById('tallyRow').textContent = list.length ? list.slice(0, 14).map((h) => F.heartOf(h.kind).emoji).join('') + (list.length > 14 ? ` +${list.length - 14}` : '') : '아직 없어요';
+      $('tallyRow').textContent = list.length ? list.slice(0, 12).map((h) => F.heartOf(h.kind).emoji).join('') + (list.length > 12 ? ` +${list.length - 12}` : '') : '아직 없어요';
     } catch (e) { /* 무시 */ }
   }
+  function setNet(t) { $('net').textContent = t; }
 
-  function setNet(t) { document.getElementById('net').textContent = t; }
-
-  async function refresh() {
-    try { const s = await api.latestStatus(SHOW); if (s) showStatus(s); } catch (e) { setNet('연결 재시도 중…'); }
-  }
-
-  // 시작
+  // ───── 시작 ─────
   showStatus(null);
-  refresh(); loadTally();
+  tick(); setInterval(tick, 15000);
+  show(q.get('tab') || homeView());
+  refresh(); loadTally(); loadTodo(); loadSched();
   api.subscribe(
     (row) => { if (row.member === SHOW) showStatus(row); },
     (row) => receiveHeart(row),
-    (st) => setNet(st === 'SUBSCRIBED' ? '● 연결됨' : st === 'DEMO' ? '데모 모드 (서버 연결 전)' : '연결 확인 중…')
+    (st) => setNet(st === 'SUBSCRIBED' ? '● 연결됨' : st === 'DEMO' ? '데모 모드 (서버 연결 전)' : '연결 확인 중…'),
+    () => loadTodo()
   );
-  setInterval(refresh, 60000);                                        // 1분마다 확인 (실시간 끊김 대비)
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); loadTally(); } });
-  setTimeout(() => location.reload(), 6 * 60 * 60 * 1000);           // 6시간마다 새로고침
+  setInterval(() => { refresh(); if (view === 'vSched') renderSched(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); loadTally(); loadTodo(); } });
+  setTimeout(() => location.reload(), 6 * 60 * 60 * 1000);
   F.keepAwake();
 
-  // 데모 모드: 아래쪽에 미리보기 버튼
+  // 데모 모드: 미리보기 버튼
   if (api.mode === 'demo' || q.has('demo')) {
-    const d = document.getElementById('demo');
+    const d = $('demo');
     d.classList.add('on');
     F.ACTIONS.forEach((a) => {
       const b = document.createElement('button');
       b.textContent = a.emoji + ' ' + a.label;
-      b.onclick = () => showStatus({ id: 'd' + Math.random(), member: SHOW, action: a.key, created_at: new Date().toISOString() });
+      b.onclick = () => { show('vDad'); showStatus({ id: 'd' + Math.random(), member: SHOW, action: a.key, created_at: new Date().toISOString() }); };
       d.appendChild(b);
     });
     const hb = document.createElement('button');

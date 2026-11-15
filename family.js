@@ -333,14 +333,70 @@
         if (error) throw error;
         return data || [];
       },
-      subscribe(onStatus, onHeart, onConn) {
+      // 로그인
+      async session() { const { data } = await sb.auth.getSession(); return data.session; },
+      async signIn(email, password) {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      },
+      async signOut() { await sb.auth.signOut(); },
+      // 할 일
+      async todoItems() {
+        const { data, error } = await sb.from('todo_items').select('*').eq('active', true).order('slot').order('sort');
+        if (error) throw error;
+        return data || [];
+      },
+      async todoDone(day) {
+        const { data, error } = await sb.from('todo_done').select('*').eq('day', day);
+        if (error) throw error;
+        return data || [];
+      },
+      async setDone(itemId, day, done, by) {
+        const r = done
+          ? await sb.from('todo_done').upsert({ item_id: itemId, day, by_member: by }, { onConflict: 'item_id,day', ignoreDuplicates: true })
+          : await sb.from('todo_done').delete().eq('item_id', itemId).eq('day', day);
+        if (r.error) throw r.error;
+      },
+      // 일정
+      async lessons(day) {
+        const { data, error } = await sb.from('lessons').select('*').eq('day', day).order('seq');
+        if (error) throw error;
+        return data || [];
+      },
+      async dayInfo(day) {
+        const { data } = await sb.from('day_info').select('*').eq('day', day).maybeSingle();
+        return data || null;
+      },
+      async extras() {
+        const { data, error } = await sb.from('extras').select('*').order('sort');
+        if (error) throw error;
+        return data || [];
+      },
+      subscribe(onStatus, onHeart, onConn, onTodo) {
         sb.channel('family-' + Math.random().toString(36).slice(2))
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'status' }, (p) => onStatus(p.new))
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hearts' }, (p) => onHeart(p.new))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'todo_done' }, (p) => onTodo && onTodo(p.eventType, p.new))
           .subscribe((st) => onConn && onConn(st));
       },
     };
   }
+
+  // 데모용 데이터 (서버 연결 전 미리보기)
+  const DEMO_TODO = [
+    ['morning', '🚽', '화장실 다녀오기'], ['morning', '🧼', '손 씻기'], ['morning', '🍚', '밥 먹기'], ['morning', '🦷', '양치하기'],
+    ['morning', '🧴', '로션 바르기'], ['morning', '👕', '옷 입기'], ['morning', '💃', '춤추기'], ['morning', '🎒', '가방 정리하기', null, true],
+    ['evening', '👟', '신발 정리하기'], ['evening', '🧼', '손 씻기'], ['evening', '🎒', '가방 정리하기', null, true],
+    ['evening', '📚', '숙제하기', '오럴리딩 · LLI · paper works'], ['evening', '🍽️', '저녁식사'], ['evening', '🛁', '씻기'],
+    ['evening', '🧴', '로션 바르기'], ['evening', '🦷', '양치하기'], ['evening', '👚', '옷 정리하기'],
+  ].map((r, i) => ({ id: i + 1, slot: r[0], sort: i, emoji: r[1], title: r[2], sub: r[3] || null, weekday_only: !!r[4] }));
+  const DEMO_LESSONS = [
+    [1, 'Thematic Project', 'My Community'], [2, 'Reading Street / My Show and Tell', 'The Stone Garden'],
+    [3, 'Speak More', 'Learning Together at School'], [4, 'Math', 'Identify Geometric Figures'],
+    [4.5, 'Lunch Time & Free Time', null, 'break'], [5, 'Leveled Literacy Intervention', 'Stone Soup'], [6, 'Oral Reading', null],
+    [7, 'National Geography Discussion', 'Unit 1-3 Extended Reading: A Son for Geppetto'], [7.5, 'Milk Time & Break', null, 'break'],
+    [8, '이안서가', '이야기 돌아보기'], [9, 'PE', '스펀지볼 놀이'],
+  ].map((r, i) => ({ id: i, seq: r[0], subject: r[1], topic: r[2], kind: r[3] || 'class', label: null, starts: null }));
 
   // 데모: 같은 브라우저의 탭끼리만 주고받음 (서버 없음)
   function demoApi() {
@@ -365,8 +421,26 @@
         const d = load(); d.hearts.push(row); d.hearts = d.hearts.slice(-200); save(d); emit({ t: 'heart', row });
       },
       async heartsToday(to) { const s = startOfToday(); return load().hearts.filter((h) => h.to_member === to && h.created_at >= s).reverse(); },
-      subscribe(onStatus, onHeart, onConn) {
-        listeners.push((m) => (m.t === 'status' ? onStatus(m.row) : onHeart(m.row)));
+      async session() { return { demo: true }; },
+      async signIn() {},
+      async signOut() {},
+      async todoItems() { return DEMO_TODO; },
+      async todoDone(day) { return (load().done || []).filter((d) => d.day === day); },
+      async setDone(itemId, day, done, by) {
+        const d = load(); d.done = (d.done || []).filter((x) => !(x.item_id === itemId && x.day === day));
+        const row = { item_id: itemId, day, by_member: by };
+        if (done) d.done.push(row);
+        save(d); emit({ t: 'todo', ev: done ? 'INSERT' : 'DELETE', row });
+      },
+      async lessons(day) { const dow = new Date(day + 'T00:00').getDay(); return dow >= 1 && dow <= 5 ? DEMO_LESSONS : []; },
+      async dayInfo() { return { leader: 'Anna', wdf: 'There are important jobs in the sky. The people who do these jobs work hard to help us.' }; },
+      async extras() { return [{ dow: 1, emoji: '🎻', title: '바이올린' }, { dow: 4, emoji: '🏊', title: '수영' }, { dow: 5, emoji: '🎻', title: '바이올린' }]; },
+      subscribe(onStatus, onHeart, onConn, onTodo) {
+        listeners.push((m) => {
+          if (m.t === 'status') onStatus(m.row);
+          else if (m.t === 'heart') onHeart(m.row);
+          else if (m.t === 'todo' && onTodo) onTodo(m.ev, m.row);
+        });
         if (onConn) onConn('DEMO');
       },
     };
@@ -384,5 +458,61 @@
     } catch (e) { /* 무시 */ }
   }
 
-  window.Family = { MEMBERS, ACTIONS, HEARTS, actionOf, heartOf, sceneSVG, ago, makeApi, keepAwake };
+  // ───────── 날짜 · 할 일 · 일정 도우미 ─────────
+  const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+  function dayStr(offset = 0) {
+    const d = new Date(); d.setDate(d.getDate() + offset);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function dayLabel(offset = 0) {
+    const d = new Date(); d.setDate(d.getDate() + offset);
+    return `${d.getMonth() + 1}월 ${d.getDate()}일 ${DAYS[d.getDay()]}요일`;
+  }
+  const dowOf = (offset = 0) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.getDay(); };
+  const isWeekend = (offset = 0) => [0, 6].includes(dowOf(offset));
+  const defaultSlot = () => (new Date().getHours() < 14 ? 'morning' : 'evening');
+  // 오늘 보여줄 할 일 (주말에는 weekday_only 항목 제외)
+  const todayItems = (items, slot) => items.filter((i) => i.slot === slot && !(i.weekday_only && isWeekend()));
+
+  const SUBJECT_EMOJI = [
+    [/math|다비수/i, '🔢'], [/science|robot/i, '🔬'], [/art|painting/i, '🎨'], [/oral/i, '🗣️'], [/library|reading street|comprehension|이안서가/i, '📖'],
+    [/literacy/i, '📚'], [/speak/i, '💬'], [/chess/i, '♟️'], [/^pe$|sports|fun|play/i, '⚽'], [/musical|drama/i, '🎭'], [/toefl|grammar|test/i, '📝'],
+    [/geograph/i, '🌍'], [/character/i, '🤝'], [/thematic|project/i, '🧩'], [/logical|thinking/i, '🧠'], [/lunch/i, '🍱'], [/milk|break/i, '🥛'],
+    [/glamping|t\.b\.f\.a/i, '🏕️'], [/숲/, '🌳'],
+  ];
+  const subjectEmoji = (s) => { for (const [re, e] of SUBJECT_EMOJI) if (re.test(s)) return e; return '✏️'; };
+  const hhmm = (t) => (t ? String(t).slice(0, 5) : '');
+
+  // 로그인 화면 (로그인이 필요하면 띄우고, 성공하면 resolve)
+  async function requireLogin(api) {
+    if (api.mode === 'demo') return;
+    if (await api.session()) return;
+    return new Promise((resolve) => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:fixed;inset:0;z-index:100;background:#fff8f0;display:flex;align-items:center;justify-content:center;font-family:inherit;padding:20px';
+      wrap.innerHTML = `
+        <form style="background:#fff;border-radius:22px;padding:28px 26px;width:min(380px,92vw);box-shadow:0 6px 24px rgba(120,80,60,.15);display:grid;gap:12px">
+          <div style="font-size:24px;font-weight:800;text-align:center">지금 뭐하니 🏠</div>
+          <div style="font-size:14px;color:#8f7a70;text-align:center;margin-bottom:6px">가족 계정으로 한 번만 로그인하면 돼요</div>
+          <input name="e" type="email" placeholder="이메일" autocomplete="username" required style="font-size:17px;padding:13px 14px;border:2px solid #f0e2d8;border-radius:12px">
+          <input name="p" type="password" placeholder="비밀번호" autocomplete="current-password" required style="font-size:17px;padding:13px 14px;border:2px solid #f0e2d8;border-radius:12px">
+          <div class="err" style="color:#c0392b;font-size:14px;min-height:18px"></div>
+          <button style="font-size:18px;font-weight:800;padding:14px;border:none;border-radius:12px;background:#ff8fab;color:#fff">들어가기</button>
+        </form>`;
+      document.body.appendChild(wrap);
+      const f = wrap.querySelector('form');
+      f.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const err = wrap.querySelector('.err');
+        err.textContent = '';
+        try { await api.signIn(f.e.value.trim(), f.p.value); wrap.remove(); resolve(); }
+        catch (e) { err.textContent = '이메일이나 비밀번호를 다시 확인해 주세요'; }
+      });
+    });
+  }
+
+  window.Family = {
+    MEMBERS, ACTIONS, HEARTS, actionOf, heartOf, sceneSVG, ago, makeApi, keepAwake,
+    DAYS, dayStr, dayLabel, dowOf, isWeekend, defaultSlot, todayItems, subjectEmoji, hhmm, requireLogin,
+  };
 })();

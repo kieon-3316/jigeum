@@ -29,3 +29,18 @@
 - 키를 넣기 전에는 서버 없이 **데모 모드**로 동작합니다. 보드 위쪽 버튼으로 장면을 미리 볼 수 있어요.
 - Supabase 무료 플랜은 7일 동안 사용이 없으면 일시정지됩니다. 매일 쓰면 문제없어요.
 - 주소를 아는 사람은 보드를 볼 수 있습니다. 사진 기능을 붙일 때 로그인을 추가할 예정이에요.
+
+## 2단계 업데이트 (로그인 · 할 일 · 일정)
+1. Supabase > Authentication > Users > Add user > Create new user: 가족 공용 이메일·비밀번호, "Auto Confirm User" 체크
+2. Supabase > Authentication > Sign In / Providers: "Allow new users to sign up" 끄기 (모르는 사람 가입 차단)
+3. SQL Editor에서 `schema2.sql` 실행
+4. GitHub에 `board.html`, `input.html`, `family.js` 다시 올리기 (덮어쓰기)
+5. 스탠바이미와 휴대폰에서 각각 한 번 로그인
+
+### 매주 학원 일정 바꾸기
+일정표 사진을 Claude에게 보내면 그 주의 SQL을 만들어 줍니다. SQL Editor에서 실행만 하면 끝.
+
+### 할 일 사용법
+- 안 한 일: 한 번 톡 → 도장 + 별
+- 실수로 누른 일: 1초 꾹 누르면 취소
+- 아침 6~9시, 저녁 5~9시에는 3분 동안 아무도 안 만지면 자동으로 할 일 화면으로 돌아와요
