@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>지금 뭐하니</title>
-<link rel="stylesheet" href="family.css">
+<link rel="stylesheet" href="family.css?v=20261116b">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; background: #fff8f0; font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: #3b3030; overflow: hidden; user-select: none; }
@@ -215,11 +215,12 @@
   <button class="vb" id="vPrev" style="left:3vmin">‹</button><button class="vb" id="vNext" style="right:3vmin">›</button>
   <button class="vx" id="vClose">✕</button><div class="vn" id="vNum"></div></div>
 <div class="net" id="net"></div>
+<div style="position:fixed;right:1.2vmin;bottom:.6vmin;font-size:11px;color:#d8c4b8">버전 1116b</div>
 <div class="demo" id="demo"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="family.js"></script>
+<script src="config.js?v=20261116b"></script>
+<script src="family.js?v=20261116b"></script>
 <script>
 (async function () {
   const F = window.Family;

@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="지금 뭐하니">
 <meta name="theme-color" content="#fff8f0">
 <title>지금 뭐하니 · 입력</title>
-<link rel="stylesheet" href="family.css">
+<link rel="stylesheet" href="family.css?v=20261116b">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: #fff8f0; font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: #3b3030; }
@@ -39,8 +39,21 @@
   .tslot { font-weight: 800; font-size: 14px; color: #6a5050; margin: 4px 0 6px; display: flex; justify-content: space-between; }
   .tslot + .chips { margin-bottom: 10px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip { font-size: 13px; padding: 5px 9px; border-radius: 99px; background: #f3ece6; color: #8f7a70; font-weight: 700; }
+  .chip { border: none; font-family: inherit; cursor: pointer; font-size: 13px; padding: 5px 9px; border-radius: 99px; background: #f3ece6; color: #8f7a70; font-weight: 700; }
   .chip.ok { background: #e3f5e7; color: #2e7d4a; }
+  .card2 { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 2px 6px rgba(120, 80, 60, .1); }
+  .mrow { display: flex; gap: 8px; }
+  .mrow input { flex: 1; min-width: 0; font-size: 16px; padding: 11px 12px; border: 2px solid #f0e2d8; border-radius: 12px; font-family: inherit; }
+  .mrow button, .pbtn { border: none; background: #ff8fab; color: #fff; font-weight: 800; font-size: 15px; padding: 0 16px; border-radius: 12px; font-family: inherit; cursor: pointer; }
+  .quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .quick button { border: none; background: #fff0f4; color: #b23a5a; font-family: inherit; font-weight: 700; font-size: 13px; padding: 7px 10px; border-radius: 99px; cursor: pointer; }
+  .mlast { font-size: 13px; color: #8f7a70; margin-top: 10px; }
+  .pbtn { display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; font-size: 16px; background: #7986cb; }
+  .pgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+  .pgrid a { position: relative; display: block; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #f3ece6; }
+  .pgrid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pgrid span { position: absolute; right: 4px; bottom: 4px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 99px; }
+  .pnote { font-size: 12px; color: #b08a7a; margin-top: 8px; }
   .link { display: block; text-align: center; font-size: 13px; color: #b08a7a; margin-top: 6px; }
 </style>
 </head>
@@ -58,6 +71,20 @@
 <h2 id="heartTitle">모네에게 마음 보내기</h2>
 <div class="hgrid" id="hearts"></div>
 
+<h2 id="msgTitle">모네에게 메시지</h2>
+<div class="card2">
+  <div class="mrow"><input id="msgIn" maxlength="40" placeholder="짧게 써 주세요 (40자)" enterkeyhint="send"><button id="msgSend">보내기</button></div>
+  <div class="quick" id="quick"></div>
+  <div class="mlast" id="mlast"></div>
+</div>
+
+<h2>사진 보내기</h2>
+<div class="card2">
+  <label class="pbtn">📷 사진 고르기 (여러 장 가능)<input id="pin" type="file" accept="image/*" multiple hidden></label>
+  <div class="pnote">원본 그대로 고르면 자동으로 줄여서 올려요 · 7일 뒤 자동 삭제 · 사진을 누르면 다운로드</div>
+  <div class="pgrid" id="pgrid"></div>
+</div>
+
 <h2 id="todoTitle">모네 오늘 할 일</h2>
 <div class="feed" id="todoBox">불러오는 중…</div>
 
@@ -65,12 +92,13 @@
 <div class="feed"><div class="row" id="feed">아직 없어요</div></div>
 
 <div class="net" id="net"></div>
+<div style="position:fixed;right:1.2vmin;bottom:.6vmin;font-size:11px;color:#d8c4b8">버전 1116b</div>
 <a class="link" id="boardLink" href="board.html">보드 화면 열기 →</a>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="family.js"></script>
+<script src="config.js?v=20261116b"></script>
+<script src="family.js?v=20261116b"></script>
 <script>
 (async function () {
   const F = window.Family;
@@ -95,8 +123,13 @@
       const list = F.todayItems(items, s);
       const n = list.filter((i) => done.has(i.id)).length;
       return `<div class="tslot"><span>${s === 'morning' ? '☀️ 아침' : '🌙 저녁'}</span><span>⭐ ${n} / ${list.length}</span></div>
-        <div class="chips">${list.map((i) => `<span class="chip${done.has(i.id) ? ' ok' : ''}">${done.has(i.id) ? '✓ ' : ''}${i.emoji} ${i.title}</span>`).join('')}</div>`;
-    }).join('');
+        <div class="chips">${list.map((i) => `<button class="chip${done.has(i.id) ? ' ok' : ''}" data-id="${i.id}">${done.has(i.id) ? '✓ ' : ''}${i.emoji} ${i.title}</button>`).join('')}</div>`;
+    }).join('') + '<div style="font-size:12px;color:#b08a7a;margin-top:4px">항목을 누르면 완료/취소를 바꿀 수 있어요</div>';
+    box.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', async () => {
+      const id = Number(c.dataset.id), on = !done.has(id);
+      try { await api.setDone(id, F.dayStr(), on, ME); toast(on ? '✓ 완료로 바꿨어요' : '↩ 취소했어요'); loadTodo(); }
+      catch (e) { toast('저장 실패 — 인터넷을 확인해 주세요'); }
+    }));
   }
   function onTodo(ev, row) {
     if (ev === 'INSERT' && row && row.item_id) {
@@ -166,6 +199,64 @@
     } catch (e) { /* 무시 */ }
   }
 
+
+  // ───── 메시지 ─────
+  const QUICK = ['사랑해 우리 딸 💗', '오늘도 잘했어! 👍', '아빠 금방 갈게 🏃', '밥 맛있게 먹어 🍚', '숙제 화이팅 💪', '꿈나라에서 만나 🌙'];
+  document.getElementById('msgTitle').textContent = `${to.name}에게 메시지`;
+  let myMsgs = [];
+  async function loadMyMsgs() {
+    try { myMsgs = (await api.messages(TO, 10)).filter((m) => m.from_member === ME); } catch (e) { return; }
+    const m = myMsgs[0];
+    document.getElementById('mlast').textContent = m ? `마지막: "${m.body}" · ${m.read_at ? '💗 읽었어요' : '아직 안 읽었어요'}` : '';
+  }
+  async function sendMsg(text) {
+    text = (text || '').trim().slice(0, 40);
+    if (!text) return;
+    try { await api.sendMessage(ME, TO, text); document.getElementById('msgIn').value = ''; toast(`💌 ${to.name}에게 보냈어요`); loadMyMsgs(); }
+    catch (e) { toast('보내기 실패 — 인터넷을 확인해 주세요'); }
+  }
+  document.getElementById('msgSend').onclick = () => sendMsg(document.getElementById('msgIn').value);
+  document.getElementById('msgIn').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) sendMsg(e.target.value); });
+  QUICK.forEach((t) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => sendMsg(t); document.getElementById('quick').appendChild(b); });
+  function onMsg(ev, row) {
+    if (row && row.from_member === ME && row.to_member === TO && ev === 'UPDATE' && row.read_at) {
+      if (navigator.vibrate) navigator.vibrate([50, 40, 50]);
+      toast(`💗 ${to.name}가 메시지를 읽었어요`);
+    }
+    loadMyMsgs();
+  }
+
+  // ───── 사진 ─────
+  async function loadMyPhotos() {
+    let list = [], urls = [];
+    try { list = await api.photos(); urls = await api.photoUrls(list.map((p) => p.path)); } catch (e) { return; }
+    const g = document.getElementById('pgrid');
+    g.innerHTML = '';
+    list.forEach((p, i) => {
+      const left = Math.max(0, 7 - Math.floor((Date.now() - new Date(p.created_at).getTime()) / 864e5));
+      const a = document.createElement('a');
+      a.href = '#';
+      a.innerHTML = `<img src="${urls[i]}" alt=""><span>${left}일 남음</span>`;
+      a.onclick = async (e) => {
+        e.preventDefault();
+        try { const u = await api.downloadUrl(p.path); location.href = u; } catch (err) { toast('다운로드 실패'); }
+      };
+      g.appendChild(a);
+    });
+  }
+  document.getElementById('pin').addEventListener('change', async (e) => {
+    const files = [...e.target.files];
+    e.target.value = '';
+    let ok = 0;
+    for (let i = 0; i < files.length; i++) {
+      toast(`📷 사진 올리는 중… ${i + 1} / ${files.length}`);
+      try { const blob = await F.shrinkPhoto(files[i]); await api.uploadPhoto(blob, ME); ok++; }
+      catch (err) { console.error(err); }
+    }
+    toast(ok === files.length ? `📷 ${ok}장 보냈어요` : `📷 ${ok}장 보냄 · ${files.length - ok}장 실패`);
+    loadMyPhotos();
+  });
+
   setInterval(() => { if (current) document.getElementById('nowSince').textContent = F.ago(current.created_at); }, 15000);
 
   showStatus(null);
@@ -181,9 +272,12 @@
       }
     },
     (st) => { document.getElementById('net').textContent = st === 'SUBSCRIBED' ? '● 연결됨' : st === 'DEMO' ? '데모 모드 (서버 연결 전)' : '연결 확인 중…'; },
-    onTodo
+    onTodo,
+    onMsg,
+    () => loadMyPhotos()
   );
-  loadTodo();
+  loadTodo(); loadMyMsgs(); loadMyPhotos();
+  api.cleanupPhotos().then((n) => { if (n) loadMyPhotos(); }).catch(() => {});
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadFeed(); loadTodo(); api.latestStatus(ME).then((s) => s && showStatus(s)).catch(() => {}); } });
 })();
 </script>

@@ -424,13 +424,16 @@
         return data.length;
       },
       subscribe(onStatus, onHeart, onConn, onTodo, onMsg, onPhoto) {
-        sb.channel('family-' + Math.random().toString(36).slice(2))
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'status' }, (p) => onStatus(p.new))
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hearts' }, (p) => onHeart(p.new))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'todo_done' }, (p) => onTodo && onTodo(p.eventType, p.new))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (p) => onMsg && onMsg(p.eventType, p.new))
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, (p) => onPhoto && onPhoto(p.new))
-          .subscribe((st) => onConn && onConn(st));
+        // 테이블마다 채널을 따로 열어서, 하나가 실패해도 나머지는 계속 동작
+        const tag = Math.random().toString(36).slice(2);
+        const sub = (table, event, cb, report) => sb.channel(`${table}-${tag}`)
+          .on('postgres_changes', { event, schema: 'public', table }, cb)
+          .subscribe((st) => { if (report && onConn) onConn(st); });
+        sub('status', 'INSERT', (p) => onStatus(p.new), true);
+        sub('hearts', 'INSERT', (p) => onHeart(p.new));
+        sub('todo_done', '*', (p) => onTodo && onTodo(p.eventType, p.new));
+        sub('messages', '*', (p) => onMsg && onMsg(p.eventType, p.new));
+        sub('photos', 'INSERT', (p) => onPhoto && onPhoto(p.new));
       },
     };
   }
