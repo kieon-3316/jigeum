@@ -313,6 +313,7 @@
 
   function supabaseApi(cfg) {
     const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY);
+    const urlCache = {};
     return {
       mode: 'live',
       async latestStatus(member) {
@@ -372,11 +373,63 @@
         if (error) throw error;
         return data || [];
       },
-      subscribe(onStatus, onHeart, onConn, onTodo) {
+      // 메시지
+      async sendMessage(from, to, body) {
+        const { error } = await sb.from('messages').insert({ from_member: from, to_member: to, body });
+        if (error) throw error;
+      },
+      async messages(to, limit = 10) {
+        const { data, error } = await sb.from('messages').select('*').eq('to_member', to).order('created_at', { ascending: false }).limit(limit);
+        if (error) throw error;
+        return data || [];
+      },
+      async markRead(id) {
+        const { error } = await sb.from('messages').update({ read_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+      },
+      // 사진
+      async uploadPhoto(blob, from) {
+        const path = `${dayStr()}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
+        const up = await sb.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg' });
+        if (up.error) throw up.error;
+        const { error } = await sb.from('photos').insert({ path, from_member: from });
+        if (error) throw error;
+      },
+      async photos() {
+        const since = new Date(Date.now() - 7 * 864e5).toISOString();
+        const { data, error } = await sb.from('photos').select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(60);
+        if (error) throw error;
+        return data || [];
+      },
+      async photoUrls(paths) {
+        const need = paths.filter((p) => !urlCache[p]);
+        if (need.length) {
+          const { data, error } = await sb.storage.from('photos').createSignedUrls(need, 8 * 3600);
+          if (error) throw error;
+          (data || []).forEach((d) => { if (d.signedUrl) urlCache[d.path] = d.signedUrl; });
+        }
+        return paths.map((p) => urlCache[p]);
+      },
+      async downloadUrl(path) {
+        const { data, error } = await sb.storage.from('photos').createSignedUrl(path, 600, { download: true });
+        if (error) throw error;
+        return data.signedUrl;
+      },
+      async cleanupPhotos() {   // 7일 지난 사진 지우기
+        const before = new Date(Date.now() - 7 * 864e5).toISOString();
+        const { data } = await sb.from('photos').select('id,path').lt('created_at', before).limit(100);
+        if (!data || !data.length) return 0;
+        await sb.storage.from('photos').remove(data.map((d) => d.path));
+        await sb.from('photos').delete().in('id', data.map((d) => d.id));
+        return data.length;
+      },
+      subscribe(onStatus, onHeart, onConn, onTodo, onMsg, onPhoto) {
         sb.channel('family-' + Math.random().toString(36).slice(2))
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'status' }, (p) => onStatus(p.new))
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hearts' }, (p) => onHeart(p.new))
           .on('postgres_changes', { event: '*', schema: 'public', table: 'todo_done' }, (p) => onTodo && onTodo(p.eventType, p.new))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (p) => onMsg && onMsg(p.eventType, p.new))
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, (p) => onPhoto && onPhoto(p.new))
           .subscribe((st) => onConn && onConn(st));
       },
     };
@@ -409,6 +462,8 @@
     const emit = (msg) => { listeners.forEach((fn) => fn(msg)); if (ch) ch.postMessage(msg); };
     if (ch) ch.onmessage = (e) => listeners.forEach((fn) => fn(e.data));
     let id = Date.now();
+    const PK = 'jigeum-demo-photos';
+    const loadP = () => { try { return JSON.parse(localStorage.getItem(PK)) || []; } catch (e) { return []; } };
     return {
       mode: 'demo',
       async latestStatus(member) { return load().status.filter((s) => s.member === member).pop(); },
@@ -435,11 +490,33 @@
       async lessons(day) { const dow = new Date(day + 'T00:00').getDay(); return dow >= 1 && dow <= 5 ? DEMO_LESSONS : []; },
       async dayInfo() { return { leader: 'Anna', wdf: 'There are important jobs in the sky. The people who do these jobs work hard to help us.' }; },
       async extras() { return [{ dow: 1, emoji: '🎻', title: '바이올린' }, { dow: 4, emoji: '🏊', title: '수영' }, { dow: 5, emoji: '🎻', title: '바이올린' }]; },
-      subscribe(onStatus, onHeart, onConn, onTodo) {
+      async sendMessage(from, to, body) {
+        const row = { id: ++id, from_member: from, to_member: to, body, created_at: new Date().toISOString(), read_at: null };
+        const d = load(); d.msgs = (d.msgs || []).concat(row).slice(-20); save(d); emit({ t: 'msg', ev: 'INSERT', row });
+      },
+      async messages(to) { return (load().msgs || []).filter((m) => m.to_member === to).reverse(); },
+      async markRead(mid) {
+        const d = load(); const m = (d.msgs || []).find((x) => x.id === mid);
+        if (m) { m.read_at = new Date().toISOString(); save(d); emit({ t: 'msg', ev: 'UPDATE', row: m }); }
+      },
+      async uploadPhoto(blob, from) {
+        const url = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+        const row = { id: ++id, path: url, from_member: from, created_at: new Date().toISOString() };
+        const list = [row].concat(loadP()).slice(0, 6);
+        try { localStorage.setItem(PK, JSON.stringify(list)); } catch (e) { /* 용량 초과 무시 */ }
+        emit({ t: 'photo', row });
+      },
+      async photos() { return loadP(); },
+      async photoUrls(paths) { return paths; },
+      async downloadUrl(path) { return path; },
+      async cleanupPhotos() { return 0; },
+      subscribe(onStatus, onHeart, onConn, onTodo, onMsg, onPhoto) {
         listeners.push((m) => {
           if (m.t === 'status') onStatus(m.row);
           else if (m.t === 'heart') onHeart(m.row);
           else if (m.t === 'todo' && onTodo) onTodo(m.ev, m.row);
+          else if (m.t === 'msg' && onMsg) onMsg(m.ev, m.row);
+          else if (m.t === 'photo' && onPhoto) onPhoto(m.row);
         });
         if (onConn) onConn('DEMO');
       },
@@ -482,6 +559,32 @@
   ];
   const subjectEmoji = (s) => { for (const [re, e] of SUBJECT_EMOJI) if (re.test(s)) return e; return '✏️'; };
   const hhmm = (t) => (t ? String(t).slice(0, 5) : '');
+  const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
+  const fromMin = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  // 학원 시간 (대략). config.js 에 ACADEMY_START / ACADEMY_END 를 넣으면 그걸 씀
+  const academyTime = () => {
+    const c = window.FAMILY_CONFIG || {};
+    return { start: toMin(c.ACADEMY_START || '09:30'), end: toMin(c.ACADEMY_END || '15:30') };
+  };
+  // 교시 시간이 없으면 학원 시간 안에서 고르게 나눠 예상 시간을 붙임
+  function estimateTimes(lessons) {
+    if (!lessons.length || lessons.every((l) => l.starts)) return lessons;
+    const { start, end } = academyTime();
+    const weight = (l) => {
+      if (/lunch/i.test(l.subject)) return 1.5;
+      if (l.kind === 'break') return 0.5;
+      const m = /(\d+)\s*~\s*(\d+)/.exec(l.label || '');
+      return m ? Number(m[2]) - Number(m[1]) + 1 : 1;
+    };
+    const total = lessons.reduce((a, l) => a + weight(l), 0);
+    let t = start;
+    return lessons.map((l) => {
+      const len = ((end - start) * weight(l)) / total;
+      const r = { ...l, starts: fromMin(Math.round(t)), ends: fromMin(Math.round(t + len)), estimated: true };
+      t += len;
+      return r;
+    });
+  }
 
   // 로그인 화면 (로그인이 필요하면 띄우고, 성공하면 resolve)
   async function requireLogin(api) {
@@ -511,8 +614,42 @@
     });
   }
 
+  // 사진 자동 축소: 원본(아이폰 HEIC 포함)을 골라도 긴 변 1600px JPG(약 300~600KB)로 줄임
+  async function shrinkPhoto(file, maxSide = 1600, quality = 0.82) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const k = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      let blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', quality));
+      if (blob && blob.size > 1.2e6) blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.65));
+      if (!blob) throw new Error('변환 실패');
+      return blob;
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  // 소리로 읽어주기 (브라우저가 지원할 때만)
+  function speak(text) {
+    try {
+      if (!('speechSynthesis' in window)) return false;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ko-KR'; u.rate = 0.9; u.pitch = 1.1;
+      const ko = speechSynthesis.getVoices().find((v) => /ko/i.test(v.lang));
+      if (ko) u.voice = ko;
+      speechSynthesis.speak(u);
+      return true;
+    } catch (e) { return false; }
+  }
+
   window.Family = {
     MEMBERS, ACTIONS, HEARTS, actionOf, heartOf, sceneSVG, ago, makeApi, keepAwake,
     DAYS, dayStr, dayLabel, dowOf, isWeekend, defaultSlot, todayItems, subjectEmoji, hhmm, requireLogin,
+    shrinkPhoto, speak, toMin, academyTime, estimateTimes,
   };
 })();

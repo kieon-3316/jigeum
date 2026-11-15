@@ -24,13 +24,38 @@
   .view.on { display: grid; }
 
   /* 아빠 */
-  #vDad { grid-template-rows: 1fr auto; }
+  #vDad { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  #vDad.has-photos { grid-template-columns: 1fr 36%; }
+  #vDad .stage { grid-column: 1; grid-row: 1; }
+  #vDad .caption { grid-column: 1; grid-row: 2; }
+  .pframe { grid-column: 2; grid-row: 1 / span 2; display: none; position: relative; background: #2b2420; cursor: pointer; overflow: hidden; }
+  #vDad.has-photos .pframe { display: block; }
+  .pframe img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s; }
+  .pframe img.on { opacity: 1; }
+  .pcap { position: absolute; left: 0; right: 0; bottom: 0; padding: 4vmin 2vmin 1.6vmin; background: linear-gradient(transparent, rgba(0, 0, 0, .55)); color: #fff; font-size: 2.4vmin; font-weight: 800; display: flex; justify-content: space-between; }
+  .msg { position: absolute; left: 3%; right: 3%; top: 3.5%; display: none; z-index: 3; background: #fff; border-radius: 3vmin; padding: 2vmin 3vmin 2.2vmin; box-shadow: 0 1vmin 3vmin rgba(120, 60, 80, .22); border: .5vmin solid #ffc2d1; }
+  .msg.on { display: block; animation: pop .5s cubic-bezier(.2, 1.6, .4, 1); }
+  .msg.unread { border-color: #ff8fab; }
+  .msg .from { font-size: 2.3vmin; color: #b08a7a; font-weight: 800; }
+  .msg .body { font-size: 4.8vmin; font-weight: 800; color: #3b3030; line-height: 1.3; margin: .6vmin 0 1.4vmin; word-break: keep-all; }
+  .msg .btns { display: flex; gap: 1.2vmin; flex-wrap: wrap; }
+  .msg button { border: none; border-radius: 99px; padding: 1.2vmin 2.6vmin; font-size: 2.8vmin; font-weight: 800; cursor: pointer; background: #f3ece6; color: #6a5050; }
+  .msg button.read { background: #ff8fab; color: #fff; }
+  .msg .done { font-size: 2.6vmin; color: #c06080; font-weight: 800; align-self: center; }
+  .viewer { position: fixed; inset: 0; z-index: 40; background: rgba(20, 14, 12, .94); display: none; align-items: center; justify-content: center; }
+  .viewer.on { display: flex; }
+  .viewer img { max-width: 92vw; max-height: 84vh; border-radius: 2vmin; box-shadow: 0 2vmin 6vmin rgba(0, 0, 0, .5); }
+  .viewer .vt { position: absolute; top: 3vmin; left: 0; right: 0; text-align: center; color: #fff; font-size: 4vmin; font-weight: 800; }
+  .viewer .vb { position: absolute; top: 50%; transform: translateY(-50%); border: none; background: rgba(255, 255, 255, .18); color: #fff; font-size: 6vmin; width: 10vmin; height: 10vmin; border-radius: 50%; cursor: pointer; }
+  .viewer .vx { position: absolute; top: 2.4vmin; right: 2.4vmin; border: none; background: rgba(255, 255, 255, .18); color: #fff; font-size: 4vmin; width: 8vmin; height: 8vmin; border-radius: 50%; cursor: pointer; }
+  .viewer .vn { position: absolute; bottom: 3vmin; color: #ddd; font-size: 2.6vmin; font-weight: 700; }
   .stage { position: relative; min-height: 0; background: #eaf2ff; }
-  .stage > svg { position: absolute; inset: 0; }
+  #stage > svg { position: absolute; inset: 0; }
   .caption { display: flex; align-items: center; gap: 2vmin; padding: 2vmin 3vmin; }
   .caption .emoji { font-size: 7vmin; line-height: 1; }
   .caption .who { font-size: 2.8vmin; color: #b08a7a; font-weight: 700; }
   .caption .what { font-size: 5.4vmin; font-weight: 800; letter-spacing: -.02em; }
+  .caption .since:empty { display: none; }
   .caption .since { margin-left: auto; font-size: 3vmin; font-weight: 700; color: #8f7a70; background: #fff3e8; padding: 1vmin 2vmin; border-radius: 99px; white-space: nowrap; }
 
   /* 할 일 */
@@ -55,11 +80,18 @@
   .todo.done .e, .todo.done .t, .todo.done .s { opacity: .45; }
   .stamp { position: absolute; top: 1vmin; right: 1vmin; width: 10vmin; height: 10vmin; border: .7vmin solid #e53950; border-radius: 50%; color: #e53950; font-size: 2vmin; font-weight: 900; display: none; align-items: center; justify-content: center; text-align: center; line-height: 1.15; transform: rotate(-14deg); background: rgba(255, 255, 255, .55); }
   .todo.done .stamp { display: flex; }
+  .todo:focus { outline: none; }
   .todo.just .stamp { animation: stamp .45s cubic-bezier(.2, 1.8, .4, 1); }
   @keyframes stamp { from { transform: rotate(-14deg) scale(2.6); opacity: 0; } }
 
   /* 일정 */
-  #vSched { grid-template-columns: 1fr 34%; gap: 2.4vmin; padding: 2.6vmin 3vmin; background: #f7f9ff; }
+  #vSched { grid-template-columns: 1fr 34%; grid-template-rows: auto 1fr; gap: 2vmin 2.4vmin; padding: 2.4vmin 3vmin; background: #f7f9ff; }
+  .nowbox { grid-column: 1 / -1; display: flex; align-items: center; gap: 2.4vmin; background: #fff; border: .5vmin solid #ffc2d1; border-radius: 3vmin; padding: 1.6vmin 3vmin; }
+  .nowbox .e { font-size: 8vmin; line-height: 1; }
+  .nowbox .k { font-size: 2.4vmin; color: #c06080; font-weight: 800; }
+  .nowbox .v { font-size: 4.4vmin; font-weight: 800; color: #3b3030; letter-spacing: -.02em; line-height: 1.25; word-break: keep-all; }
+  .nowbox .d { font-size: 2.2vmin; color: #8f7a70; font-weight: 700; margin-top: .4vmin; }
+  .nowbox .clk { margin-left: auto; font-size: 5vmin; font-weight: 800; color: #6b7bb0; font-variant-numeric: tabular-nums; }
   .sch-left { display: grid; grid-template-rows: auto 1fr; gap: 1.6vmin; min-height: 0; }
   .sch-date { font-size: 4vmin; font-weight: 800; }
   .sch-date small { font-size: 2.5vmin; color: #6b7bb0; margin-left: 1.4vmin; font-weight: 800; }
@@ -67,7 +99,7 @@
   .les { display: flex; align-items: center; gap: 1.4vmin; background: #fff; border-radius: 1.8vmin; padding: .8vmin 1.6vmin; box-shadow: 0 .3vmin 1vmin rgba(60, 80, 140, .08); min-height: 0; overflow: hidden; }
   .les .n { flex: none; width: 4.4vmin; height: 4.4vmin; border-radius: 50%; background: #e3e8fb; color: #4a5aa0; font-weight: 900; font-size: 2.2vmin; display: flex; align-items: center; justify-content: center; }
   .les .e { font-size: 4vmin; flex: none; }
-  .les .sub { font-size: 2.3vmin; font-weight: 800; color: #2f3a66; line-height: 1.2; }
+  .les .sub { font-size: 2.1vmin; font-weight: 800; color: #2f3a66; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
   .les .top { font-size: 1.9vmin; color: #7d88b3; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .les .tm { font-size: 1.8vmin; color: #9aa3c7; font-weight: 700; }
   .les.break { background: #eef1fb; box-shadow: none; }
@@ -140,12 +172,15 @@
 
   <section class="card main">
     <div class="view" id="vDad">
-      <div class="stage" id="stage"></div>
+      <div class="stage"><div id="stage" style="position:absolute;inset:0"></div>
+        <div class="msg" id="msg"><div class="from" id="msgFrom"></div><div class="body" id="msgBody"></div><div class="btns" id="msgBtns"></div></div>
+      </div>
       <div class="caption">
         <div class="emoji" id="capEmoji">👋</div>
         <div><div class="who" id="capWho">아빠는 지금</div><div class="what" id="capWhat">안녕!</div></div>
         <div class="since" id="capSince"></div>
       </div>
+      <div class="pframe" id="pframe"><div class="pcap"><span id="pcapL">📷 아빠가 보낸 사진</span><span id="pcapR"></span></div></div>
     </div>
 
     <div class="view" id="vTodo">
@@ -159,6 +194,7 @@
     </div>
 
     <div class="view" id="vSched">
+      <div class="nowbox"><div class="e" id="nowE">🙂</div><div><div class="k" id="nowK">지금 모네는</div><div class="v" id="nowV"></div><div class="d" id="nowD"></div></div><div class="clk" id="nowClk"></div></div>
       <div class="sch-left">
         <div class="sch-date" id="schDate"></div>
         <div class="lessons" id="lessons"></div>
@@ -175,6 +211,9 @@
 </div>
 
 <div class="overlay" id="overlay"><div class="bubble"><div class="big" id="ovEmoji">💗</div><div class="msg" id="ovMsg"></div></div></div>
+<div class="viewer" id="viewer"><div class="vt" id="vTitle"></div><img id="vImg" alt="">
+  <button class="vb" id="vPrev" style="left:3vmin">‹</button><button class="vb" id="vNext" style="right:3vmin">›</button>
+  <button class="vx" id="vClose">✕</button><div class="vn" id="vNum"></div></div>
 <div class="net" id="net"></div>
 <div class="demo" id="demo"></div>
 
@@ -252,6 +291,7 @@
   }
   document.querySelectorAll('.slot').forEach((b) => b.addEventListener('click', () => { slot = b.dataset.slot; renderTodo(); }));
   function renderTodo(justId) {
+    if (view === 'vSched') renderNow();
     document.querySelectorAll('.slot').forEach((b) => b.classList.toggle('on', b.dataset.slot === slot));
     const list = F.todayItems(items, slot);
     const n = list.filter((i) => done.has(i.id)).length;
@@ -273,6 +313,7 @@
         hold = setTimeout(() => toggle(it, false), 1000);
       });
       ['pointerup', 'pointerleave', 'pointercancel'].forEach((e) => b.addEventListener(e, () => clearTimeout(hold)));
+      b.addEventListener('contextmenu', (e) => e.preventDefault());
       b.addEventListener('click', () => { if (!done.has(it.id)) toggle(it, true, b); });
       g.appendChild(b);
     });
@@ -290,15 +331,63 @@
     }
   }
 
+  // ───── 지금 모네는? (시간 + 일정표 + 할 일로 추측) ─────
+  function guessNow() {
+    const d = new Date(), t = d.getHours() * 60 + d.getMinutes();
+    const { start, end } = F.academyTime();
+    const prog = (s) => { const l = F.todayItems(items, s); return { list: l, n: l.filter((i) => done.has(i.id)).length, next: l.find((i) => !done.has(i.id)) }; };
+    const am = prog('morning'), pm = prog('evening');
+    const todayEx = extras.filter((x) => x.dow === F.dowOf());
+    const school = lessons.length > 0;
+    const sleep = { e: '😴', v: '꿈나라에서 자고 있어요', d: '잘 자, 모네야 🌙' };
+    if (t < 6 * 60) return sleep;
+    const morning = () => am.next
+      ? { e: '☀️', v: '아침 준비하고 있어요', d: `다음은 ${am.next.emoji} ${am.next.title} · ⭐ ${am.n} / ${am.list.length}` }
+      : { e: '🎒', v: school ? '아침 준비 끝! 학원 갈 준비 완료' : '아침 준비 끝! 오늘은 뭐 하고 놀까?', d: `⭐ ${am.n} / ${am.list.length} 다 했어요` };
+    const evening = () => pm.next
+      ? { e: '🌙', v: '저녁 할 일 하고 있어요', d: `다음은 ${pm.next.emoji} ${pm.next.title} · ⭐ ${pm.n} / ${pm.list.length}` }
+      : { e: '🛌', v: '저녁 할 일 끝! 잘 준비하고 있어요', d: `⭐ ${pm.n} / ${pm.list.length} 다 했어요` };
+    const eveningStarted = pm.n > 0 || t >= 17 * 60;
+    if (t >= 21 * 60 + 30 && !pm.next) return sleep;
+    if (eveningStarted && t >= Math.min(17 * 60, end + 60)) return t >= 22 * 60 ? sleep : evening();
+    if (school) {
+      if (t < start) return morning();
+      if (t < end) {
+        const l = lessons.find((x) => t >= F.toMin(x.starts) && t < F.toMin(x.ends)) || lessons[lessons.length - 1];
+        const est = l.estimated ? ' · 시간은 예상이에요' : '';
+        if (/lunch/i.test(l.subject)) return { e: '🍱', v: '학원에서 점심 먹고 자유시간이에요', d: '맛있게 먹어!' + est };
+        if (l.kind === 'break') return { e: '🥛', v: '학원에서 우유 마시고 쉬는 시간이에요', d: '잠깐 쉬어요' + est };
+        const no = l.label || `${Number(l.seq)}교시`;
+        return { e: F.subjectEmoji(l.subject), v: `학원에서 ${l.subject} 하고 있어요`, d: `${no}${l.topic ? ' · ' + l.topic : ''}${est}` };
+      }
+      if (todayEx.length && t < end + 150) {
+        const x = todayEx[0];
+        return { e: x.emoji, v: `${x.title} 하러 갔어요`, d: '학원 끝나고 ' + todayEx.map((y) => y.emoji + ' ' + y.title).join(', ') };
+      }
+      if (t < end + 40) return { e: '🚌', v: '학원 끝나고 집에 오는 중이에요', d: '조금만 기다려요' };
+      return { e: '🏠', v: '집에서 쉬고 있어요', d: pm.list.length ? `저녁 할 일 ⭐ ${pm.n} / ${pm.list.length}` : '' };
+    }
+    if (t < 12 * 60 && am.next) return morning();
+    return { e: '🎈', v: '오늘은 쉬는 날! 신나게 노는 중이에요', d: am.next ? `아침 할 일이 ${am.list.length - am.n}개 남았어요` : '아침 할 일 다 했어요 ⭐' };
+  }
+  function renderNow() {
+    const g = guessNow();
+    $('nowE').textContent = g.e; $('nowV').textContent = g.v; $('nowD').textContent = g.d || '';
+    $('nowK').textContent = `지금 ${me.name}는`;
+    const d = new Date(); $('nowClk').textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
   // ───── 일정 ─────
   let lessons = [], info = null, extras = [];
   async function loadSched() {
     try {
       [lessons, info, extras] = await Promise.all([api.lessons(F.dayStr()), api.dayInfo(F.dayStr()), api.extras()]);
+      lessons = F.estimateTimes(lessons);
     } catch (e) { setNet('일정 불러오기 실패'); }
     renderSched();
   }
   function renderSched() {
+    renderNow();
     $('schDate').innerHTML = `${F.dayLabel()}${info && info.leader ? `<small>오늘의 반장 · ${info.leader}</small>` : ''}`;
     const L = $('lessons'), R = $('schRight');
     const todayEx = extras.filter((x) => x.dow === F.dowOf());
@@ -315,7 +404,7 @@
         return `<div class="les ${l.kind}${isNow ? ' now' : ''}">
           <div class="n">${num}</div><div class="e">${F.subjectEmoji(l.subject)}</div>
           <div style="min-width:0"><div class="sub">${l.subject}</div>${l.topic ? `<div class="top">${l.topic}</div>` : ''}
-          ${l.starts ? `<div class="tm">${F.hhmm(l.starts)}${l.ends ? '~' + F.hhmm(l.ends) : ''}</div>` : ''}</div></div>`;
+          ${l.starts && !l.estimated ? `<div class="tm">${F.hhmm(l.starts)}${l.ends ? '~' + F.hhmm(l.ends) : ''}</div>` : ''}</div></div>`;
       }).join('');
     }
     const exHtml = (arr) => arr.length
@@ -389,6 +478,75 @@
   }
   function setNet(t) { $('net').textContent = t; }
 
+  // ───── 메시지 ─────
+  let msgs = [];
+  async function loadMsg() { try { msgs = await api.messages(ME, 5); } catch (e) { return; } renderMsg(); }
+  function latestMsg() { return msgs.find((m) => m.from_member === SHOW); }
+  function renderMsg() {
+    const m = latestMsg(), el = $('msg');
+    const fresh = m && (!m.read_at || Date.now() - new Date(m.created_at).getTime() < 12 * 3600e3);
+    if (!fresh) { el.classList.remove('on'); return; }
+    $('msgFrom').textContent = `💌 ${who.name}의 메시지 · ${F.ago(m.created_at).replace('째', ' 전').replace('부터', '')}`;
+    $('msgBody').textContent = m.body;
+    el.classList.toggle('unread', !m.read_at);
+    const b = $('msgBtns'); b.innerHTML = '';
+    const sp = document.createElement('button'); sp.textContent = '🔊 들려줘';
+    sp.onclick = () => F.speak(m.body);
+    b.appendChild(sp);
+    if (!m.read_at) {
+      const rd = document.createElement('button'); rd.className = 'read'; rd.textContent = '💗 읽었어요';
+      rd.onclick = async () => { m.read_at = new Date().toISOString(); flyFrom(rd, '💗'); renderMsg(); try { await api.markRead(m.id); } catch (e) { setNet('저장 실패'); } };
+      b.appendChild(rd);
+    } else {
+      const d = document.createElement('span'); d.className = 'done'; d.textContent = '💗 읽었어요'; b.appendChild(d);
+    }
+    if (!el.classList.contains('on')) el.classList.add('on');
+  }
+  function onMsg(ev, row) {
+    if (!row || row.to_member !== ME || row.from_member !== SHOW) return;
+    const i = msgs.findIndex((m) => m.id === row.id);
+    if (i >= 0) msgs[i] = row; else msgs.unshift(row);
+    if (ev === 'INSERT') {
+      show('vDad'); $('msg').classList.remove('on'); renderMsg();
+      setTimeout(() => F.speak(`${who.name}가 보낸 메시지. ${row.body}`), 600);
+    } else renderMsg();
+  }
+
+  // ───── 사진 ─────
+  let photos = [], urls = [], pIdx = 0, vIdx = 0, vTimer = null;
+  async function loadPhotos() {
+    try { photos = await api.photos(); urls = await api.photoUrls(photos.map((p) => p.path)); } catch (e) { return; }
+    const f = $('pframe');
+    f.querySelectorAll('img').forEach((i) => i.remove());
+    urls.slice(0, 20).forEach((u, i) => { const im = document.createElement('img'); im.src = u; im.loading = 'lazy'; if (i === 0) im.className = 'on'; f.insertBefore(im, f.firstChild); });
+    pIdx = 0;
+    $('vDad').classList.toggle('has-photos', urls.length > 0);
+    $('pcapR').textContent = urls.length ? `${urls.length}장` : '';
+  }
+  setInterval(() => {
+    const imgs = [...$('pframe').querySelectorAll('img')].reverse();
+    if (imgs.length < 2) return;
+    imgs[pIdx % imgs.length].classList.remove('on'); pIdx++; imgs[pIdx % imgs.length].classList.add('on');
+  }, 8000);
+  function openViewer(i, title, autoClose) {
+    if (!urls.length) return;
+    vIdx = (i + urls.length) % urls.length;
+    $('vImg').src = urls[vIdx]; $('vTitle').textContent = title || '';
+    $('vNum').textContent = `${vIdx + 1} / ${Math.min(urls.length, 20)}`;
+    $('viewer').classList.add('on');
+    clearTimeout(vTimer); if (autoClose) vTimer = setTimeout(closeViewer, 15000);
+  }
+  function closeViewer() { $('viewer').classList.remove('on'); clearTimeout(vTimer); }
+  $('pframe').addEventListener('click', () => { const imgs = [...$('pframe').querySelectorAll('img')].reverse(); openViewer(imgs.length ? pIdx % imgs.length : 0); });
+  $('vPrev').onclick = (e) => { e.stopPropagation(); openViewer(vIdx - 1, ''); };
+  $('vNext').onclick = (e) => { e.stopPropagation(); openViewer(vIdx + 1, ''); };
+  $('vClose').onclick = closeViewer;
+  let photoDeb = null;
+  function onPhoto() {
+    clearTimeout(photoDeb);
+    photoDeb = setTimeout(async () => { show('vDad'); await loadPhotos(); openViewer(0, `📷 ${who.name}가 사진을 보냈어요`, true); }, 1500);
+  }
+
   // ───── 시작 ─────
   showStatus(null);
   tick(); setInterval(tick, 15000);
@@ -398,10 +556,15 @@
     (row) => { if (row.member === SHOW) showStatus(row); },
     (row) => receiveHeart(row),
     (st) => setNet(st === 'SUBSCRIBED' ? '● 연결됨' : st === 'DEMO' ? '데모 모드 (서버 연결 전)' : '연결 확인 중…'),
-    () => loadTodo()
+    () => loadTodo(),
+    onMsg,
+    onPhoto
   );
+  loadMsg(); loadPhotos();
   setInterval(() => { refresh(); if (view === 'vSched') renderSched(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); loadTally(); loadTodo(); } });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); loadTally(); loadTodo(); loadMsg(); } });
+  setInterval(() => { renderMsg(); }, 60000);
+  setInterval(loadPhotos, 30 * 60000);
   setTimeout(() => location.reload(), 6 * 60 * 60 * 1000);
   F.keepAwake();
 
